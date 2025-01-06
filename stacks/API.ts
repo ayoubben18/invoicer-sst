@@ -1,139 +1,99 @@
-import {
-  StackContext,
-  Api,
-  EventBus,
-  Function as SSTFunction,
-} from "sst/constructs";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
-import * as lambda from "aws-cdk-lib/aws-lambda";
+import {
+  Api,
+  Config,
+  Function as SSTFunction,
+  StackContext,
+  use,
+} from "sst/constructs";
+import { LambdaInvoke } from "aws-cdk-lib/aws-stepfunctions-tasks";
+import { Bus } from "./BUS";
 
 export function API({ stack }: StackContext) {
-  // Create Lambda functions for each step
-  const identifyProviderFn = new SSTFunction(stack, "IdentifyProvider", {
-    handler:
-      "packages/functions/src/provider/identify-new-or-old-provider.handler",
+  const EVENT_BUS = new Config.Secret(stack, "EVENT_BUS");
+  const determineProviderState = new SSTFunction(
+    stack,
+    "DetermineProviderState",
+    {
+      handler:
+        "packages/functions/src/provider/identify-new-or-old-provider.handler",
+    }
+  );
+
+  // Add new Lambda functions
+  const handleNewProvider = new SSTFunction(stack, "HandleNewProvider", {
+    handler: "packages/functions/src/provider/handle-new-provider.handler",
   });
 
-  // Define the Step Functions workflow
-  const identifyProvider = new tasks.LambdaInvoke(
+  const handleExistingProvider = new SSTFunction(
     stack,
-    "IdentifyNewOrOldProvider",
+    "HandleExistingProvider",
     {
-      lambdaFunction: identifyProviderFn,
+      handler:
+        "packages/functions/src/provider/handle-existing-provider.handler",
+      bind: [EVENT_BUS],
     }
   );
 
-  // Define parallel paths for new provider
-  const newProviderBranch = sfn.Chain.start(
-    new tasks.LambdaInvoke(stack, "GetProviderInfos", {
-      lambdaFunction: new SSTFunction(stack, "GetProviderInfosFn", {
-        handler: "packages/functions/src/provider/get-provider-infos.handler",
-      }),
-    })
-  )
-    .next(
-      new tasks.LambdaInvoke(stack, "FindProducts", {
-        lambdaFunction: new SSTFunction(stack, "FindProductsFn", {
-          handler: "packages/functions/src/provider/find-products.handler",
-        }),
-      })
-    )
-    .next(
-      new tasks.LambdaInvoke(stack, "InsertInDatabase", {
-        lambdaFunction: new SSTFunction(stack, "InsertInDatabaseFn", {
-          handler: "packages/functions/src/provider/insert-in-database.handler",
-        }),
-      })
-    )
-    .next(
-      new tasks.LambdaInvoke(stack, "GenerateEmbeddingAndInsert", {
-        lambdaFunction: new SSTFunction(stack, "GenerateEmbeddingAndInsertFn", {
-          handler:
-            "packages/functions/src/provider/generate-embedding-and-insert.handler",
-        }),
-      })
-    );
-
-  // Define parallel paths for existing provider
-  const oldProviderBranch = sfn.Chain.start(
-    new sfn.Parallel(stack, "OldProviderTasks").branch(
-      sfn.Chain.start(
-        new tasks.LambdaInvoke(stack, "FindProviderUsingEmbedding", {
-          lambdaFunction: new SSTFunction(
-            stack,
-            "FindProviderUsingEmbeddingFn",
-            {
-              handler:
-                "packages/functions/src/provider/find-provider-using-embedding.handler",
-            }
-          ),
-        })
-      ),
-      sfn.Chain.start(
-        new tasks.LambdaInvoke(stack, "IdentifyProducts", {
-          lambdaFunction: new SSTFunction(stack, "IdentifyProductsFn", {
-            handler:
-              "packages/functions/src/provider/identify-products.handler",
-          }),
-        })
-      )
-    )
-  )
-    .next(
-      new tasks.LambdaInvoke(stack, "GenerateEmbeddingForProduct", {
-        lambdaFunction: new SSTFunction(
-          stack,
-          "GenerateEmbeddingForProductFn",
-          {
-            handler:
-              "packages/functions/src/provider/generate-embedding-for-product.handler",
-          }
-        ),
-      })
-    )
-    .next(
-      new tasks.LambdaInvoke(stack, "SearchForProduct", {
-        lambdaFunction: new SSTFunction(stack, "SearchForProductFn", {
-          handler: "packages/functions/src/provider/search-for-product.handler",
-        }),
-      })
-    )
-    .next(
-      new tasks.LambdaInvoke(stack, "UpdateOrInsert", {
-        lambdaFunction: new SSTFunction(stack, "UpdateOrInsertFn", {
-          handler: "packages/functions/src/provider/update-or-insert.handler",
-        }),
-      })
-    );
-
-  // Create choice state
-  const providerChoice = new sfn.Choice(stack, "NewOrExistingProvider")
-    .when(sfn.Condition.stringEquals("$.type", "new"), newProviderBranch)
-    .otherwise(oldProviderBranch);
-
-  // Final step
-  const generateInvoice = new tasks.LambdaInvoke(
+  // Add with other Lambda function definitions
+  const generateAndSendInvoice = new SSTFunction(
     stack,
-    "GenerateInvoiceAndMail",
+    "GenerateAndSendInvoice",
     {
-      lambdaFunction: new SSTFunction(stack, "GenerateInvoiceAndMailFn", {
-        handler:
-          "packages/functions/src/provider/generate-invoice-and-mail.handler",
-      }),
+      handler:
+        "packages/functions/src/product/generate-and-send-invoice.handler",
     }
   );
 
-  // Create the state machine
+  // Create the state machine with choice
   const stateMachine = new sfn.StateMachine(stack, "ProviderWorkflow", {
-    definition: sfn.Chain.start(identifyProvider)
-      .next(providerChoice)
-      .next(generateInvoice),
+    definitionBody: sfn.DefinitionBody.fromChainable(
+      sfn.Chain.start(
+        new LambdaInvoke(stack, "DetermineProviderState-Invoke", {
+          lambdaFunction: determineProviderState,
+          outputPath: "$.Payload",
+        }).next(
+          new sfn.Choice(stack, "ProviderTypeChoice")
+            .when(
+              sfn.Condition.stringEquals("$.type", "new"),
+              new LambdaInvoke(stack, "HandleNewProvider-Invoke", {
+                lambdaFunction: handleNewProvider,
+              }).next(
+                new LambdaInvoke(stack, "GenerateAndSendInvoice-Invoke-new", {
+                  lambdaFunction: generateAndSendInvoice,
+                })
+              )
+            )
+            .when(
+              sfn.Condition.stringEquals("$.type", "old"),
+              new LambdaInvoke(stack, "HandleExistingProvider-Invoke-old", {
+                lambdaFunction: handleExistingProvider,
+              }).next(
+                new LambdaInvoke(stack, "GenerateAndSendInvoice-Invoke", {
+                  lambdaFunction: generateAndSendInvoice,
+                })
+              )
+            )
+            .otherwise(
+              new sfn.Fail(stack, "InvalidProviderType", {
+                cause: "Invalid provider type",
+                error: "ProviderTypeError",
+              })
+            )
+        )
+      )
+    ),
   });
-
+  const bus = use(Bus);
   const api = new Api(stack, "api", {
     defaults: {
-      function: {},
+      function: {
+        permissions: [bus, "events:PutEvents"],
+        environment: {
+          EVENT_BUS: bus.eventBusName,
+        },
+      },
     },
     routes: {
       "POST /add-products-process": {

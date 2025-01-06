@@ -1,5 +1,5 @@
 {
-  "name": "@sst-microservice/functions",
+  "name": "@invoicer/functions",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

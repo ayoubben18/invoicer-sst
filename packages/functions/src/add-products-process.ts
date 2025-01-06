@@ -1,15 +1,12 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
-import { z } from "zod";
-
-const schema = z.object({
-  teamId: z.number(),
-  prompt: z.string(),
-});
+import { addProductsProcessSchema } from "../../core/src/schemas";
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   const body = JSON.parse(event.body || "{}");
-  const { teamId, prompt } = schema.parse(body);
+  const { teamId, prompt } = addProductsProcessSchema.parse(body);
+
+  // Auth using redis
 
   const client = new SFNClient({}); //Create the Step Function client
 
@@ -17,11 +14,17 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   await client.send(
     new StartExecutionCommand({
       stateMachineArn: process.env.STATE_MACHINE,
+      input: JSON.stringify({
+        teamId,
+        prompt,
+      }),
     })
   );
 
   return {
     statusCode: 200,
-    body: "Start machine started",
+    body: JSON.stringify({
+      message: "Start machine started",
+    }),
   };
 };
