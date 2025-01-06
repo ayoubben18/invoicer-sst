@@ -1,5 +1,5 @@
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
-import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
+import { LambdaInvoke } from "aws-cdk-lib/aws-stepfunctions-tasks";
 import {
   Api,
   Config,
@@ -7,23 +7,29 @@ import {
   StackContext,
   use,
 } from "sst/constructs";
-import { LambdaInvoke } from "aws-cdk-lib/aws-stepfunctions-tasks";
 import { Bus } from "./BUS";
 
 export function API({ stack }: StackContext) {
-  const EVENT_BUS = new Config.Secret(stack, "EVENT_BUS");
+  const bus = use(Bus);
+
+  const OPENAI_API_KEY = new Config.Secret(stack, "OPENAI_API_KEY");
+
+  const secrets = [OPENAI_API_KEY];
+
   const determineProviderState = new SSTFunction(
     stack,
     "DetermineProviderState",
     {
       handler:
         "packages/functions/src/provider/identify-new-or-old-provider.handler",
+      bind: secrets,
     }
   );
 
   // Add new Lambda functions
   const handleNewProvider = new SSTFunction(stack, "HandleNewProvider", {
     handler: "packages/functions/src/provider/handle-new-provider.handler",
+    bind: secrets,
   });
 
   const handleExistingProvider = new SSTFunction(
@@ -32,7 +38,7 @@ export function API({ stack }: StackContext) {
     {
       handler:
         "packages/functions/src/provider/handle-existing-provider.handler",
-      bind: [EVENT_BUS],
+      bind: [bus, ...secrets],
     }
   );
 
@@ -67,10 +73,10 @@ export function API({ stack }: StackContext) {
             )
             .when(
               sfn.Condition.stringEquals("$.type", "old"),
-              new LambdaInvoke(stack, "HandleExistingProvider-Invoke-old", {
+              new LambdaInvoke(stack, "HandleExistingProvider-Invoke", {
                 lambdaFunction: handleExistingProvider,
               }).next(
-                new LambdaInvoke(stack, "GenerateAndSendInvoice-Invoke", {
+                new LambdaInvoke(stack, "GenerateAndSendInvoice-Invoke-old", {
                   lambdaFunction: generateAndSendInvoice,
                 })
               )
@@ -85,14 +91,10 @@ export function API({ stack }: StackContext) {
       )
     ),
   });
-  const bus = use(Bus);
   const api = new Api(stack, "api", {
     defaults: {
       function: {
         permissions: [bus, "events:PutEvents"],
-        environment: {
-          EVENT_BUS: bus.eventBusName,
-        },
       },
     },
     routes: {
@@ -108,11 +110,10 @@ export function API({ stack }: StackContext) {
   });
 
   api.attachPermissionsToRoute("POST /add-products-process", [
-    [stateMachine, "grantStartExecution"],
+    "states:StartExecution",
   ]);
 
   stack.addOutputs({
     ApiEndpoint: api.url,
-    StateMachineArn: stateMachine.stateMachineArn,
   });
 }

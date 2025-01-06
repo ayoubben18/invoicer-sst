@@ -1,23 +1,21 @@
+import { Events } from "../../../core/src/products";
 import { Handler } from "aws-lambda";
-import { publish } from "../../../core/src/publish";
+
+import { extractProvider } from "@invoicer/core/src/services/llm-calls/extract-provider";
+import { extractProducts } from "@invoicer/core/src/services/llm-calls/extract-products";
+
 export const handler: Handler = async (event) => {
   console.log("Handling existing provider flow", event);
 
-  // Extract the old provider from the prompt
+  const [provider, products] = await Promise.all([
+    extractProvider(event.prompt),
+    extractProducts(event.prompt),
+  ]);
 
-  // Extract all the products from the prompt
+  console.log("Provider", provider);
+  console.log("Products", products);
 
-  // Insert provider + Send event for all the new Products to add them to the database
-  //   in object
-  //   {
-  //     teamId: teamId,
-  //     productsInfos: productsInfos,
-  //     providerId: providerId,
-  //   }
-
-  // Send an invoice by passing all the product quanitites + names
-
-  await publish("handleInsertProducts", {
+  await Events.Extracted.publish({
     teamId: "123",
     productsInfos: [],
     providerId: "123",

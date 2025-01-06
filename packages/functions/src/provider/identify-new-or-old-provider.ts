@@ -1,12 +1,17 @@
 import { Handler } from "aws-lambda";
 import { addProductsProcessSchema } from "../../../core/src/schemas";
+import { determineNewOrOldProvider } from "@invoicer/core/src/services/llm-calls/determine-new-or-old";
+
 export const handler: Handler = async (event) => {
   const { teamId, prompt } = addProductsProcessSchema.parse(event);
 
-  console.log("Identify new or old provider", teamId, prompt);
+  const result = await determineNewOrOldProvider(prompt);
+
+  console.log(result);
 
   return {
     statusCode: 200,
-    type: "old",
+    type: result.type,
+    prompt,
   };
 };

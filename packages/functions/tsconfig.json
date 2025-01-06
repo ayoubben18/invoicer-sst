@@ -5,7 +5,9 @@
     "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
-      "@sst-microservice/core/*": ["../core/src/*"]
+      "@invoicer/functions/*": ["../functions/src/*"],
+      "@invoicer/core/*": ["../core/src/*"],
+      "@invoicer/database/*": ["../database/src/*"]
     }
   }
 }

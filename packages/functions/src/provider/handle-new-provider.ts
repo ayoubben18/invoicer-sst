@@ -1,15 +1,17 @@
 import { Handler } from "aws-lambda";
+import { extractProvider } from "@invoicer/core/src/services/llm-calls/extract-provider";
+import { extractProducts } from "@invoicer/core/src/services/llm-calls/extract-products";
 
 export const handler: Handler = async (event) => {
   console.log("Handling new provider flow", event);
 
-  // Extract the new provider from the prompt
+  const [provider, products] = await Promise.all([
+    extractProvider(event.prompt),
+    extractProducts(event.prompt),
+  ]);
 
-  // Extract all the products from the prompt
-
-  // Insert all products since the provider is new
-
-  // Send an invoice by passing all the product quanitites + names
+  console.log("Provider", provider);
+  console.log("Products", products);
 
   return {
     statusCode: 200,

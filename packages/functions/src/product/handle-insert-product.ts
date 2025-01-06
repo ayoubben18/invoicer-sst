@@ -1,10 +1,6 @@
-import { Handler } from "aws-lambda";
+import { EventHandler } from "sst/node/event-bus";
+import { Events } from "@invoicer/core/src/products";
 
-export const handler: Handler = async (event) => {
+export const handler = EventHandler(Events.Extracted, async (event) => {
   console.log(event);
-
-  return {
-    statusCode: 200,
-    message: "Processed insert product",
-  };
-};
+});
