@@ -7,9 +7,9 @@ import { OPENAI_4O_MINI } from "./_shared";
 const schema = z.object({
   name: z.string(),
   category: z.string(),
-  phone_number: z.string().optional(),
-  email: z.string().optional(),
-  identity_card: z.string().optional(),
+  // phone_number: z.string().optional(),
+  // email: z.string().optional(),
+  // identity_card: z.string().optional(),
   description: z.string().optional(),
 });
 

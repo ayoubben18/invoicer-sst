@@ -6,13 +6,12 @@ export const Events = {
     "product.extracted",
     z.object({
       teamId: z.string(),
-      productsInfos: z.array(
-        z.object({
-          name: z.string(),
-          quantity: z.number(),
-          description: z.string(),
-        })
-      ),
+      productsInfos: z.object({
+        name: z.string(),
+        quantity: z.number(),
+        price: z.number().optional(),
+        description: z.string(),
+      }),
       providerId: z.string(),
     })
   ),

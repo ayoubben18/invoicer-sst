@@ -2,7 +2,7 @@ import { z } from "zod";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { OPENAI_4O_MINI } from "./_shared";
+import { OPENAI_4O, OPENAI_4O_MINI } from "./_shared";
 
 export const determineNewOrOldProvider = async (text: string) => {
   const schema = z.object({
@@ -53,7 +53,7 @@ Here is my input:
 \n{format_instructions}\n
       `
     ),
-    OPENAI_4O_MINI,
+    OPENAI_4O,
     parser,
   ]);
 

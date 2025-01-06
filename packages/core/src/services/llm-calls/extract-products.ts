@@ -8,9 +8,9 @@ const schema = z.object({
   products: z.array(
     z.object({
       name: z.string(),
-      quantity: z.number().optional(),
+      quantity: z.number(),
       price: z.number().optional(),
-      description: z.string().optional(),
+      description: z.string(),
     })
   ),
 });

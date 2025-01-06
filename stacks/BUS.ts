@@ -1,5 +1,4 @@
-import { EventBus, StackContext } from "sst/constructs";
-
+import { EventBus, StackContext, Config } from "sst/constructs";
 export function Bus(ctx: StackContext) {
   const bus = new EventBus(ctx.stack, "InvoicerBus", {});
 

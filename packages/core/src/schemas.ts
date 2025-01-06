@@ -1,6 +1,6 @@
 import { z } from "zod";
 
 export const addProductsProcessSchema = z.object({
-  teamId: z.number(),
+  teamId: z.string(),
   prompt: z.string(),
 });

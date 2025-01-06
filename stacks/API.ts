@@ -14,7 +14,9 @@ export function API({ stack }: StackContext) {
 
   const OPENAI_API_KEY = new Config.Secret(stack, "OPENAI_API_KEY");
 
-  const secrets = [OPENAI_API_KEY];
+  const DATABASE_URL = new Config.Secret(stack, "DATABASE_URL");
+
+  const secrets = [OPENAI_API_KEY, DATABASE_URL];
 
   const determineProviderState = new SSTFunction(
     stack,
@@ -30,6 +32,7 @@ export function API({ stack }: StackContext) {
   const handleNewProvider = new SSTFunction(stack, "HandleNewProvider", {
     handler: "packages/functions/src/provider/handle-new-provider.handler",
     bind: secrets,
+    timeout: "15 minute",
   });
 
   const handleExistingProvider = new SSTFunction(
@@ -39,6 +42,7 @@ export function API({ stack }: StackContext) {
       handler:
         "packages/functions/src/provider/handle-existing-provider.handler",
       bind: [bus, ...secrets],
+      timeout: "15 minute",
     }
   );
 
@@ -49,6 +53,7 @@ export function API({ stack }: StackContext) {
     {
       handler:
         "packages/functions/src/product/generate-and-send-invoice.handler",
+      bind: secrets,
     }
   );
 

@@ -7,11 +7,10 @@ export const handler: Handler = async (event) => {
 
   const result = await determineNewOrOldProvider(prompt);
 
-  console.log(result);
-
   return {
     statusCode: 200,
     type: result.type,
     prompt,
+    teamId,
   };
 };
