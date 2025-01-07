@@ -12,11 +12,15 @@ export const handler = EventHandler(Events.Extracted, async (event) => {
 
   const similarity = await getProductSimilarity(productEmbedding);
 
+  console.log("similarity", similarity);
+
   const [existingProduct] = await db
     .select()
     .from(products)
-    .where(gte(similarity, 0.7))
+    .where(gte(similarity, 0.8))
     .limit(1);
+
+  console.log("existingProduct", existingProduct);
 
   if (existingProduct) {
     await db

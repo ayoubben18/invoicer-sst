@@ -4,10 +4,12 @@ export function Bus(ctx: StackContext) {
 
   bus.subscribe("product.extracted", {
     handler: "packages/functions/src/product/handle-insert-product.handler",
+    timeout: "15 minute",
   });
 
   bus.subscribe("user.call-user", {
     handler: "packages/functions/src/user/handle-call-user.handler",
+    timeout: "15 minute",
   });
 
   return bus;

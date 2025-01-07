@@ -18,6 +18,14 @@ export function API({ stack }: StackContext) {
   const TWILIO_ACCOUNT_SID = new Config.Secret(stack, "TWILIO_ACCOUNT_SID");
   const TWILIO_AUTH_TOKEN = new Config.Secret(stack, "TWILIO_AUTH_TOKEN");
   const TWILIO_PHONE_NUMBER = new Config.Secret(stack, "TWILIO_PHONE_NUMBER");
+  const UPSTASH_REDIS_REST_URL = new Config.Secret(
+    stack,
+    "UPSTASH_REDIS_REST_URL"
+  );
+  const UPSTASH_REDIS_REST_TOKEN = new Config.Secret(
+    stack,
+    "UPSTASH_REDIS_REST_TOKEN"
+  );
 
   const secrets = [
     OPENAI_API_KEY,
@@ -25,6 +33,8 @@ export function API({ stack }: StackContext) {
     TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN,
     TWILIO_PHONE_NUMBER,
+    UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN,
   ];
 
   const bus = use(Bus);
@@ -38,6 +48,7 @@ export function API({ stack }: StackContext) {
       handler:
         "packages/functions/src/provider/identify-new-or-old-provider.handler",
       bind: secrets,
+      timeout: "15 minute",
     }
   );
 
@@ -67,6 +78,7 @@ export function API({ stack }: StackContext) {
       handler:
         "packages/functions/src/product/generate-and-send-invoice.handler",
       bind: secrets,
+      timeout: "15 minute",
     }
   );
 
@@ -120,6 +132,7 @@ export function API({ stack }: StackContext) {
       "POST /add-products-process": {
         function: {
           handler: "packages/functions/src/add-products-process.handler",
+          bind: secrets,
           environment: {
             STATE_MACHINE: stateMachine.stateMachineArn,
           },
