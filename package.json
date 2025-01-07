@@ -22,6 +22,7 @@
   ],
   "dependencies": {
     "@aws-sdk/client-sfn": "^3.721.0",
+    "@aws-sdk/s3-request-presigner": "^3.723.0",
     "@langchain/community": "^0.3.22",
     "@langchain/openai": "^0.3.16",
     "ai": "^4.0.27",
@@ -30,6 +31,7 @@
     "openai": "^4.77.3",
     "postgres": "^3.4.5",
     "sst": "^2.43.7",
+    "twilio": "^5.4.0",
     "zod": "^3.24.1",
     "zod-to-json-schema": "^3.24.1"
   }

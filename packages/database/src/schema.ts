@@ -750,6 +750,7 @@ export const processStatusEnum = pgEnum("process_status", [
 export const teams = pgTable("teams", {
   id: uuid().defaultRandom().primaryKey().notNull(),
   name: text().notNull(),
+  phone_number: text(),
   created_at: timestamp({ withTimezone: true, mode: "string" })
     .defaultNow()
     .notNull(),

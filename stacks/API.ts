@@ -8,17 +8,29 @@ import {
   use,
 } from "sst/constructs";
 import { Bus } from "./BUS";
+import { BUCKET } from "./Bucket";
 
 export function API({ stack }: StackContext) {
   const OPENAI_API_KEY = new Config.Secret(stack, "OPENAI_API_KEY");
 
   const DATABASE_URL = new Config.Secret(stack, "DATABASE_URL");
 
-  const secrets = [OPENAI_API_KEY, DATABASE_URL];
+  const TWILIO_ACCOUNT_SID = new Config.Secret(stack, "TWILIO_ACCOUNT_SID");
+  const TWILIO_AUTH_TOKEN = new Config.Secret(stack, "TWILIO_AUTH_TOKEN");
+  const TWILIO_PHONE_NUMBER = new Config.Secret(stack, "TWILIO_PHONE_NUMBER");
+
+  const secrets = [
+    OPENAI_API_KEY,
+    DATABASE_URL,
+    TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN,
+    TWILIO_PHONE_NUMBER,
+  ];
 
   const bus = use(Bus);
+  const bucket = use(BUCKET);
   bus.bind(secrets);
-
+  bucket.bind(secrets);
   const determineProviderState = new SSTFunction(
     stack,
     "DetermineProviderState",
@@ -101,6 +113,7 @@ export function API({ stack }: StackContext) {
     defaults: {
       function: {
         permissions: [bus, "events:PutEvents"],
+        bind: secrets,
       },
     },
     routes: {
@@ -110,6 +123,12 @@ export function API({ stack }: StackContext) {
           environment: {
             STATE_MACHINE: stateMachine.stateMachineArn,
           },
+        },
+      },
+      "POST /call-user": {
+        function: {
+          handler: "packages/functions/src/user/call-user.handler",
+          bind: [bus, bucket, ...secrets],
         },
       },
     },
