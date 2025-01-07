@@ -23,7 +23,8 @@ export const handler = EventHandler(Events.Extracted, async (event) => {
       .update(products)
       .set({
         quantity:
-          event.properties.productsInfos.quantity + existingProduct.quantity,
+          parseInt(String(event.properties.productsInfos.quantity)) +
+          parseInt(String(existingProduct.quantity)),
       })
       .where(eq(products.id, existingProduct.id));
   } else {

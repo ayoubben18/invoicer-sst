@@ -10,13 +10,14 @@ import {
 import { Bus } from "./BUS";
 
 export function API({ stack }: StackContext) {
-  const bus = use(Bus);
-
   const OPENAI_API_KEY = new Config.Secret(stack, "OPENAI_API_KEY");
 
   const DATABASE_URL = new Config.Secret(stack, "DATABASE_URL");
 
   const secrets = [OPENAI_API_KEY, DATABASE_URL];
+
+  const bus = use(Bus);
+  bus.bind(secrets);
 
   const determineProviderState = new SSTFunction(
     stack,

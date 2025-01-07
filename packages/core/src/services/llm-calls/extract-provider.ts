@@ -7,9 +7,9 @@ import { OPENAI_4O_MINI } from "./_shared";
 const schema = z.object({
   name: z.string(),
   category: z.string(),
-  // phone_number: z.string().optional(),
-  // email: z.string().optional(),
-  // identity_card: z.string().optional(),
+  phone_number: z.string().optional(),
+  email: z.string().optional(),
+  identity_card: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -21,18 +21,30 @@ export const extractProvider = async (text: string) => {
       `
      You are a specialized information extractor focused on analyzing text to extract provider details. Your task is to return ONLY a JSON object containing the extracted information with no additional text or explanation.
 
+First, determine if the provider is new or existing by checking for these indicators:
+
+NEW Provider indicators:
+- Explicit announcements of new partnerships
+- Formal introductions
+- Phrases like "pleased to introduce", "new partner", "announcing our partnership"
+
+EXISTING Provider indicators:
+- Mentioned in context of ongoing operations
+- Phrases like "brought us more", "as usual", "regular supplier"
+- References to repeat orders or existing relationship
+
 Required Fields (Always Extract):
 - name: Provider's company or individual name
-- category: Business category derived from their products/services (e.g., "electronics", "software", "hardware", "consulting")
+- category: Business category derived from their products/services
 
-Conditional Fields (Extract Only for New Providers):
-If the text contains detailed information suggesting this is a new provider, also extract:
+Additional Fields (Extract ONLY for NEW providers):
 - phone_number: Contact phone number if mentioned
-- identity_card: Any form of business ID/registration number if mentioned
-- description: Comprehensive description of their services and capabilities
+- email: Email address if mentioned
+- identity_card: Business ID/registration number if mentioned
+- description: Comprehensive description of their services
 
 Output Format:
-Return ONLY a JSON object following this structure:
+For NEW providers:
 {{
     "name": string,
     "category": string,
@@ -42,52 +54,51 @@ Return ONLY a JSON object following this structure:
     "description": string | undefined
 }}
 
-Note: For existing providers (minimal details), set conditional fields to null.
+For EXISTING providers:
+{{
+    "name": string,
+    "category": string
+}}
 
 Examples:
 
-Example 1 (New Provider):
-Input: "We're partnering with MicroTech Solutions (ID: BRN-789456) for our semiconductor needs. They specialize in custom microprocessor manufacturing with state-of-the-art facilities in Taiwan. Contact them at +1-555-0123 or support@microtech.com for orders. Their automated production line handles 5000 units daily with 99.9% accuracy."
+Example 1 (NEW Provider):
+Input: "We are excited to introduce Acme Solutions (ID: ACM-2024) as our new electronics supplier. Contact: +1-555-0123, sales@acme.com"
 Output:
 {{
-    "name": "MicroTech Solutions",
-    "category": "semiconductors",
+    "name": "Acme Solutions",
+    "category": "electronics",
     "phone_number": "+1-555-0123",
-    "email": "support@microtech.com",
-    "identity_card": "BRN-789456",
-    "description": "Specializes in custom microprocessor manufacturing with state-of-the-art facilities in Taiwan. Automated production line handles 5000 units daily with 99.9% accuracy."
+    "email": "sales@acme.com",
+    "identity_card": "ACM-2024"
 }}
 
-Example 2 (Existing Provider):
-Input: "Send the order to DataCore Systems for the new server components."
+Example 2 (EXISTING Provider):
+Input: "Acme Solutions brought us more components for the project. Order includes 50 units of processors."
 Output:
 {{
-    "name": "DataCore Systems",
-    "category": "hardware"
+    "name": "Acme Solutions",
+    "category": "electronics"
 }}
 
-Example 3 (New Provider with Partial Information):
-Input: "Our new cloud services provider CloudMatrix (License #CLM2024) offers enterprise-level hosting solutions with 24/7 support. Their infrastructure includes redundant data centers across three continents. For inquiries, email: info@cloudmatrix.io"
+Example 3 (EXISTING Provider with Details):
+Input: "This is an old provider not a new one TechnoVision Enterprises brought us more .50 TechnoVision NVR-8000 recording units priced at $899. Each unit supports up to 16 cameras, includes 8TB storage, and features AI-powered video analysis."
 Output:
 {{
-    "name": "CloudMatrix",
-    "category": "cloud_services",
-    "email": "info@cloudmatrix.io",
-    "identity_card": "CLM2024",
-    "description": "Offers enterprise-level hosting solutions with 24/7 support. Infrastructure includes redundant data centers across three continents."
+    "name": "TechnoVision Enterprises",
+    "category": "surveillance_equipment"
 }}
 
 Rules:
-1. Return ONLY the JSON object, no other text
-2. Always include all fields in the output
-3. Omit fields entirely when information is not available (they will be undefined)
-4. Infer the category from products/services mentioned
-5. For description, combine all relevant details about capabilities, services, and distinguishing features
-6. Extract phone numbers and identity cards exactly as they appear in the text
-7. If multiple phone numbers exist, use the primary/first mentioned one
-8. Maintain proper JSON formatting
+1. If you see phrases like "brought us more" or mentions of repeat business, treat as EXISTING provider
+2. For EXISTING providers, include ONLY name and category
+3. Category should be inferred from products/services mentioned
+4. Omit any fields that aren't explicitly mentioned in the text
+5. Don't be misled by detailed product descriptions - focus on how the provider is introduced
+6. Return ONLY the JSON object with no additional text
 
-Here is my input:
+
+Here is my input, please extract the provider details:
 {input}
 
 \n{format_instructions}\n

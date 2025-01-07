@@ -14,40 +14,64 @@ export const determineNewOrOldProvider = async (text: string) => {
   const chain = RunnableSequence.from([
     ChatPromptTemplate.fromTemplate(
       `
-      You are a specialized text analyzer focused on extracting information about product providers. Your task is to analyze the input text and return ONLY a JSON object with no additional text or explanation.
+      You are a specialized text analyzer focused on determining if a provider mention is new or old. Your task is to analyze the input text and return ONLY a JSON object with no additional text or explanation.
 
-Rules for classification:
-1. If the text contains detailed information about a provider (such as contact details, address, services offered, or multiple descriptive details), classify them as "new"
-2. If the text only mentions a provider's name with minimal or no additional details, classify them as "old"
+Key Indicators for Classification:
+
+NEW Provider:
+- Text explicitly introduces or announces a new partnership/supplier
+- Contains phrases like "new provider", "pleased to introduce", "announcing our partnership"
+- Provides comprehensive company details in an introductory manner
+
+OLD Provider:
+- Provider is mentioned in passing or as part of ongoing operations
+- Referenced in context of existing relationship or repeat orders
+- Contains phrases like "as usual", "brought us more", "our regular supplier"
+- No formal introduction or comprehensive company details provided
 
 Output Format:
-You must return ONLY a JSON object with this exact structure:
+Return ONLY a JSON object with this exact structure:
 {{
-    "type": "new" | "old"
+    "provider_type": "new" | "old"
 }}
 
 Examples:
-Explicit (Detailed Information):
-Input: "We're excited to announce our partnership with Quantum Dynamics Inc. They specialize in quantum computing hardware, maintain facilities in both California and New York, employ over 200 engineers, and offer comprehensive warranty coverage for all products. Their CEO, Dr. Sarah Chen, has 20 years of industry experience."
+
+Example 1 (NEW):
+Input: "We are pleased to introduce TechCorp as our new semiconductor supplier. They are based in Taiwan with ISO 9001 certification..."
 Output:
 {{
-"type": "new"
+    "provider_type": "new"
 }}
-Implicit (Minimal Information):
-Input: "The shipment will be processed through Quantum Dynamics Inc as usual. Please proceed with the order."
+
+Example 2 (OLD):
+Input: "TechCorp brought us another shipment of semiconductors last week."
 Output:
 {{
-"type": "old"
+    "provider_type": "old"
 }}
 
-Remember:
-- Return ONLY the JSON object, no other text
-- Do not add explanations or notes
-- Ensure the JSON is properly formatted
-- The only possible values for provider_type are "new" or "old"
-- Base the classification solely on the amount of provider details present in the text
+Example 3 (OLD):
+Input: "Our regular supplier TechCorp will handle the order as usual."
+Output:
+{{
+    "provider_type": "old"
+}}
 
-Here is my input:
+Example 4 (OLD):
+Input: "TechCorp brought us more components. They'll deliver 50 units next week."
+Output:
+{{
+    "provider_type": "old"
+}}
+
+Rules:
+1. Return ONLY the JSON object, no other text
+2. Focus on how the provider is introduced/referenced in the text
+3. Look for explicit indicators of new partnerships vs ongoing relationships
+4. Don't be misled by the amount of detail - focus on context and introduction style
+5. Phrases like "brought us more" or references to repeat business always indicate an old provider
+Here is my input, please try to find out if it is a new provider or an existing one:
 {input}
 
 \n{format_instructions}\n

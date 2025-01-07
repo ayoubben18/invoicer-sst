@@ -1,14 +1,13 @@
-import { Handler } from "aws-lambda";
-import { extractProvider } from "@invoicer/core/src/services/llm-calls/extract-provider";
-import { extractProducts } from "@invoicer/core/src/services/llm-calls/extract-products";
 import { embedText } from "@invoicer/core/src/services/llm-calls/embeddings";
+import { extractProducts } from "@invoicer/core/src/services/llm-calls/extract-products";
+import { extractProvider } from "@invoicer/core/src/services/llm-calls/extract-provider";
 import { db } from "@invoicer/database/src";
 import {
-  providers,
-  products as productsTable,
   Product,
+  products as productsTable,
+  providers,
 } from "@invoicer/database/src/schema";
-import { Config } from "sst/node/config";
+import { Handler } from "aws-lambda";
 export const handler: Handler = async (event) => {
   const [provider, products] = await Promise.all([
     extractProvider(event.prompt),
@@ -30,7 +29,7 @@ export const handler: Handler = async (event) => {
       team_id: event.teamId,
       description: product.description,
       name: product.name,
-      quantity: product.quantity,
+      quantity: parseInt(String(product.quantity)),
       price: product.price ?? null,
     }))
   );
@@ -49,10 +48,6 @@ export const handler: Handler = async (event) => {
         embedding: providerEmbeddings,
       })
       .returning({ id: providers.id });
-
-    console.log(insertedProvider);
-
-    console.log(productsToInsert);
 
     await tx.insert(productsTable).values(
       productsToInsert.map((product) => ({
