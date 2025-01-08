@@ -83,7 +83,7 @@ pnpm run deploy
 
 # Workflow
 
-The application uses AWS Step Functions to manage the provider onboarding process. Here's the workflow:
+The application uses AWS Step Functions to manage the provider and product onboarding process. Here's the workflow:
 
 ```mermaid
 stateDiagram-v2
@@ -94,12 +94,17 @@ stateDiagram-v2
     ProviderTypeChoice --> HandleExistingProvider: type == "old"
     ProviderTypeChoice --> InvalidProviderType: otherwise
 
-    HandleNewProvider --> GenerateAndSendInvoiceNew
-    HandleExistingProvider --> GenerateAndSendInvoiceOld
+    HandleNewProvider --> PublishProductValidationEvents
+    HandleExistingProvider --> PublishProductValidationEvents
 
-    GenerateAndSendInvoiceNew --> [*]
-    GenerateAndSendInvoiceOld --> [*]
+    PublishProductValidationEvents --> WaitForProductValidation
+    WaitForProductValidation --> GenerateAndSendInvoice
+
+    GenerateAndSendInvoice --> [*]
     InvalidProviderType --> [*]
+
+    note right of PublishProductValidationEvents: Publishes events to checkif each product is new/existing
+    note right of WaitForProductValidation: Waits for productvalidation results
 ```
 
 ## Workflow Steps
@@ -108,11 +113,12 @@ stateDiagram-v2
 2. **ProviderTypeChoice**: Routes the workflow based on provider type
 3. For new providers:
    - **HandleNewProvider**: Processes new provider registration
-   - **GenerateAndSendInvoice**: Creates and sends initial invoice
 4. For existing providers:
    - **HandleExistingProvider**: Updates existing provider information
-   - **GenerateAndSendInvoice**: Creates and sends updated invoice
-5. Invalid provider types trigger a failure state with `ProviderTypeError`
+5. **PublishProductValidationEvents**: Publishes events to EventBridge for each product to determine if it's new or existing
+6. **WaitForProductValidation**: Waits for callbacks with product validation results
+7. **GenerateAndSendInvoice**: Creates and sends invoice based on provider and product status
+8. Invalid provider types trigger a failure state with `ProviderTypeError`
 
 ## Development
 
