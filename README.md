@@ -81,11 +81,14 @@ Deploy to AWS:
 
 pnpm run deploy
 
-## Main Workflows
+# Workflow
 
+The application uses AWS Step Functions to manage the provider onboarding process. Here's the workflow:
+
+```mermaid
 stateDiagram-v2
-[*] --> DetermineProviderState
-DetermineProviderState --> ProviderTypeChoice
+    [*] --> DetermineProviderState
+    DetermineProviderState --> ProviderTypeChoice
 
     ProviderTypeChoice --> HandleNewProvider: type == "new"
     ProviderTypeChoice --> HandleExistingProvider: type == "old"
@@ -97,22 +100,19 @@ DetermineProviderState --> ProviderTypeChoice
     GenerateAndSendInvoiceNew --> [*]
     GenerateAndSendInvoiceOld --> [*]
     InvalidProviderType --> [*]
+```
 
-    note right of ProviderTypeChoice: Checks provider type
-    note right of InvalidProviderType: Fails with ProviderTypeError
+## Workflow Steps
 
-### Provider Processing
-
-1. New text is processed to determine if it's a new or existing provider
-2. Based on the determination:
-   - New providers: Create provider and product records
-   - Existing providers: Update product quantities and generate events
-
-### Product Management
-
-- Vector embeddings are used for similarity search
-- Automatic quantity updates for existing products
-- Price tracking and inventory management
+1. **DetermineProviderState**: Identifies whether the provider is new or existing in the system
+2. **ProviderTypeChoice**: Routes the workflow based on provider type
+3. For new providers:
+   - **HandleNewProvider**: Processes new provider registration
+   - **GenerateAndSendInvoice**: Creates and sends initial invoice
+4. For existing providers:
+   - **HandleExistingProvider**: Updates existing provider information
+   - **GenerateAndSendInvoice**: Creates and sends updated invoice
+5. Invalid provider types trigger a failure state with `ProviderTypeError`
 
 ## Development
 
