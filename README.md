@@ -94,17 +94,18 @@ stateDiagram-v2
     ProviderTypeChoice --> HandleExistingProvider: type == "old"
     ProviderTypeChoice --> InvalidProviderType: otherwise
 
-    HandleNewProvider --> PublishProductValidationEvents
-    HandleExistingProvider --> PublishProductValidationEvents
+    HandleNewProvider --> GenerateAndSendInvoice
 
+    HandleExistingProvider --> PublishProductValidationEvents
     PublishProductValidationEvents --> WaitForProductValidation
     WaitForProductValidation --> GenerateAndSendInvoice
 
     GenerateAndSendInvoice --> [*]
     InvalidProviderType --> [*]
 
-    note right of PublishProductValidationEvents: Publishes events to checkif each product is new/existing
-    note right of WaitForProductValidation: Waits for productvalidation results
+    note right of HandleNewProvider: Process new provider<br/>with all new products
+    note right of PublishProductValidationEvents: Publishes events to check<br/>if each product is new/existing
+    note right of WaitForProductValidation: Waits for product<br/>validation results
 ```
 
 ## Workflow Steps
@@ -113,12 +114,13 @@ stateDiagram-v2
 2. **ProviderTypeChoice**: Routes the workflow based on provider type
 3. For new providers:
    - **HandleNewProvider**: Processes new provider registration
+   - **GenerateAndSendInvoice**: Creates and sends initial invoice (all products are new)
 4. For existing providers:
    - **HandleExistingProvider**: Updates existing provider information
-5. **PublishProductValidationEvents**: Publishes events to EventBridge for each product to determine if it's new or existing
-6. **WaitForProductValidation**: Waits for callbacks with product validation results
-7. **GenerateAndSendInvoice**: Creates and sends invoice based on provider and product status
-8. Invalid provider types trigger a failure state with `ProviderTypeError`
+   - **PublishProductValidationEvents**: Publishes events to EventBridge for each product to determine if it's new or existing
+   - **WaitForProductValidation**: Waits for callbacks with product validation results
+   - **GenerateAndSendInvoice**: Creates and sends invoice based on validated product statuses
+5. Invalid provider types trigger a failure state with `ProviderTypeError`
 
 ## Development
 
